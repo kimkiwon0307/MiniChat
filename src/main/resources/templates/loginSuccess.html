@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><title>로그인 성공</title></head>
+<body>
+<h2>로그인 성공!</h2>
+<div th:each="entry : ${user.entrySet()}">
+    <p><b th:text="${entry.key}"></b>: <span th:text="${entry.value}"></span></p>
+</div>
+</body>
+</html>
