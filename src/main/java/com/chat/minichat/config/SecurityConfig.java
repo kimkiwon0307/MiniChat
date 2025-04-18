@@ -56,7 +56,6 @@ public class SecurityConfig {
 
             System.out.println("✅ 닉네임: " + nickname);
 
-
             return oAuth2User;
         };
     }

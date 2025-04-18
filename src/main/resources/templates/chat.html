@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>Mini Chat</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+<h2>💬 실시간 채팅</h2>
+
+<div id="chat-box" style="border:1px solid #aaa; height:200px; overflow:auto; margin-bottom:10px;"></div>
+
+<!-- 메시지 입력창 -->
+<input type="text" id="message" placeholder="메시지를 입력하세요" />
+<button onclick="sendMessage()">전송</button>
+
+<script>
+    let stompClient = null;
+    const nickname = "[[${nickname}]]"; // Thymeleaf 사용 시 닉네임을 가져오는 부분
+
+    // WebSocket 연결 함수
+    function connect() {
+        const socket = new SockJS('/ws-chat'); // WebSocket 엔드포인트
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+            console.log('Connected: ' + frame);
+
+            // /sub/chat/room 채널을 구독
+            stompClient.subscribe('/sub/chat/room', function (messageOutput) {
+                const msg = JSON.parse(messageOutput.body);  // 메시지 파싱
+                showMessage(msg);  // 메시지를 화면에 표시
+            });
+
+            // 입장 메시지 보내기
+            stompClient.send("/app/chat.send", {}, JSON.stringify({
+                type: 'JOIN',
+                sender: nickname,
+                content: ''
+            }));
+        });
+    }
+
+    // 메시지 전송 함수
+    function sendMessage() {
+        const content = document.getElementById('message').value;  // 메시지 내용 가져오기
+        if(content.trim() !== '') {  // 메시지가 비어있지 않으면
+            stompClient.send("/app/chat.send", {}, JSON.stringify({
+                type: 'CHAT',  // 일반 채팅
+                sender: nickname,
+                content: content
+            }));
+            document.getElementById('message').value = '';  // 입력창 비우기
+        }
+    }
+
+    // 화면에 메시지 출력 함수
+    function showMessage(msg) {
+        const chatBox = document.getElementById('chat-box');
+        const line = document.createElement('div');
+
+        // 입장 메시지 처리
+        if (msg.type === 'JOIN') {
+            line.innerHTML = `<i>👋 ${msg.sender} 님이 입장했습니다.</i>`;
+        }
+        // 퇴장 메시지 처리
+        else if (msg.type === 'LEAVE') {
+            line.innerHTML = `<i>👋 ${msg.sender} 님이 퇴장했습니다.</i>`;
+        }
+        // 일반 채팅 메시지 처리
+        else {
+            line.textContent = `${msg.sender} : ${msg.content}`;
+        }
+
+        chatBox.appendChild(line);  // 메시지를 화면에 추가
+        chatBox.scrollTop = chatBox.scrollHeight;  // 최신 메시지가 보이도록 스크롤 이동
+    }
+
+    // 페이지 로드 시 WebSocket 연결 시작
+    connect();
+</script>
+</body>
+</html>
